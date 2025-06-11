@@ -30,7 +30,7 @@ Sigue estos pasos para configurar y ejecutar el backend localmente:
 
 1.  **Clonar el Repositorio:**
     ```bash
-    git clone [URL_DE_ESTE_REPOSITORIO_BACKEND]
+    git clone https://github.com/juanco2597/Tech-marketplace-backend.git
     cd backend
     ```
 
@@ -42,7 +42,7 @@ Sigue estos pasos para configurar y ejecutar el backend localmente:
     ```
 
 3.  **Configurar Variables de Entorno:**
-    Crea un archivo llamado `.env` en la raíz de este directorio (`/backend`) y añade las siguientes variables con tus credenciales:
+    Crea un archivo llamado `.env` en la raíz de este directorio y añade las siguientes variables con tus credenciales:
 
     ```env
     # JWT Secret Key (cambia 'your_jwt_secret_key' por una cadena aleatoria fuerte)
@@ -79,18 +79,19 @@ Sigue estos pasos para configurar y ejecutar el backend localmente:
 ## Estructura de Directorios
 
 /src
-├── /auth           // Módulo de autenticación (estrategias JWT, guards, etc.)
-├── /users          // Módulo de usuarios (controlador, servicio, esquema/modelo)
-├── /products       // Módulo de productos (controlador, servicio, esquema/modelo)
-├── /common         // Módulos compartidos (filtros, pipes, interceptors)
-├── main.ts         // Punto de entrada de la aplicación
-└── app.module.ts   // Módulo raíz
+
+/auth           Módulo de autenticación (estrategias JWT, guards, etc.)
+/users          Módulo de usuarios (controlador, servicio, esquema/modelo)
+/products       Módulo de productos (controlador, servicio, esquema/modelo)
+/common         Módulos compartidos (filtros, pipes, interceptors)
+main.ts         Punto de entrada de la aplicación
+app.module.ts   Módulo raíz
 
 ## Endpoints de la API
 
 Para una descripción detallada de los endpoints de la API, sus métodos, parámetros y respuestas, consulta la [Documentación Técnica](https://docs.google.com/document/d/1IN19QcX_EbYMHlFkxaNuU9dzhA7d1tpq/edit?usp=sharing&ouid=109566389520819504234&rtpof=true&sd=true).
 
-## Pruebas Unitarias (Opcional)
+## Pruebas Unitarias
 
 Puedes ejecutar las pruebas unitarias con el siguiente comando:
 
