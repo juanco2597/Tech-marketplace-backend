@@ -12,16 +12,16 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { ProductsService } from 'src/products/products.service'; 
+import { CollectionReference } from 'firebase-admin/firestore';
 import { User } from 'src/users/interfaces/user.interface'; 
-import { plainToClass } from 'class-transformer';
 
 @Injectable()
 export class OrdersService {
-  private ordersCollection: admin.firestore.CollectionReference;
+  private ordersCollection: CollectionReference;
 
   constructor(
-    @Inject('FIRESTORE_DB') private firestore: admin.firestore.Firestore,
-    private productsService: ProductsService, 
+    @Inject('FIRESTORE_DB') private readonly firestore: admin.firestore.Firestore,
+    private readonly productsService: ProductsService, 
   ) {
     this.ordersCollection = this.firestore.collection('orders');
   }

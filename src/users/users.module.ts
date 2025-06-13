@@ -5,8 +5,8 @@ import { UsersController } from './users.controller';
 
 @Module({
   imports: [FirebaseModule],
-  providers: [UsersService],
   controllers: [UsersController],
+  providers: [UsersService],
   exports: [UsersService],
 })
 export class UsersModule {}
