@@ -1,20 +1,21 @@
-// src/products/products.service.ts (Código actual con la corrección del error)
-import { Injectable, Inject, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, UnauthorizedException } from '@nestjs/common'; 
 import * as admin from 'firebase-admin';
 import { Product } from './interfaces/product.interface';
 import { CreateProductDto } from './dto/create-product.dto';
 import { FilterProductDto } from './dto/filter-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto'; // Importa el nuevo DTO
-import { User } from 'src/users/interfaces/user.interface';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { User } from 'src/users/interfaces/user.interface'; 
 
 @Injectable()
 export class ProductsService {
   private productsCollection: admin.firestore.CollectionReference;
+  private usersCollection: admin.firestore.CollectionReference; 
 
   constructor(
     @Inject('FIRESTORE_DB') private firestore: admin.firestore.Firestore,
   ) {
     this.productsCollection = this.firestore.collection('products');
+    this.usersCollection = this.firestore.collection('users'); 
   }
 
   async createProduct(
@@ -24,9 +25,9 @@ export class ProductsService {
   ): Promise<Product> {
     const { name, sku, quantity, price } = createProductDto;
     if (!name || !sku || quantity === undefined || price === undefined || !imageUrl || !sellerId) {
-      throw new BadRequestException('All product attributes (name, sku, quantity, price, imageUrl, sellerId) are required.');
+      throw new BadRequestException('Todos los atributos del producto (nombre, sku, cantidad, precio, URL de imagen, ID de vendedor) son requeridos.');
     }
-    const newProduct: Omit<Product, 'id'> = {
+    const newProduct: Omit<Product, 'id' | 'seller'> = {
       name,
       sku,
       quantity,
@@ -38,14 +39,14 @@ export class ProductsService {
     };
     const productRef = this.productsCollection.doc();
     await productRef.set(newProduct);
-    return { id: productRef.id, ...newProduct };
+    const createdProduct = { id: productRef.id, ...newProduct } as Product;
+    return (await this.populateSellerInfo([createdProduct]))[0]; 
   }
 
   async findAllProducts(
     user: User | undefined,
     filterDto: FilterProductDto,
   ): Promise<Product[]> {
-    // ... (código existente)
     let query: admin.firestore.Query = this.productsCollection;
 
     if (filterDto.name) {
@@ -60,18 +61,22 @@ export class ProductsService {
     if (filterDto.maxPrice !== undefined) {
       query = query.where('price', '<=', filterDto.maxPrice);
     }
+
     if (user && user.role === 'seller') {
-      query = query.where('sellerId', '==', user.id);
+        query = query.where('sellerId', '==', user.id);
     } else if (user && user.role === 'admin') {
-      if (filterDto.sellerId) {
-        query = query.where('sellerId', '==', filterDto.sellerId);
-      }
+        if (filterDto.sellerId) {
+            query = query.where('sellerId', '==', filterDto.sellerId);
+        }
+       
     }
+
     const snapshot = await query.get();
     if (snapshot.empty) {
       return [];
     }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    return this.populateSellerInfo(products); 
   }
 
   async findOne(id: string): Promise<Product | undefined> {
@@ -79,10 +84,10 @@ export class ProductsService {
     if (!doc.exists) {
       return undefined;
     }
-    return { id: doc.id, ...doc.data() } as Product;
+    const product = { id: doc.id, ...doc.data() } as Product;
+    return (await this.populateSellerInfo([product]))[0]; 
   }
 
-  // Nuevo método para actualizar un producto
   async updateProduct(
     productId: string,
     updateProductDto: UpdateProductDto,
@@ -98,10 +103,10 @@ export class ProductsService {
 
     const existingProduct = doc.data() as Product;
     if (currentUserRole === 'seller' && existingProduct.sellerId !== currentUserId) {
-      throw new UnauthorizedException('You are not authorized to update this product.');
+      throw new UnauthorizedException('No estas autorizado a actualizar este producto.');
     }
     else if (currentUserRole !== 'seller' && currentUserRole !== 'admin') {
-        throw new UnauthorizedException('You do not have permission to update products.');
+        throw new UnauthorizedException('No tienes permiso para actualizar productos.');
     }
 
     const dataToUpdate: { [key: string]: any } = {};
@@ -112,13 +117,12 @@ export class ProductsService {
     }
 
     dataToUpdate.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-    await productRef.update(dataToUpdate); 
+    await productRef.update(dataToUpdate);
 
     const updatedDoc = await productRef.get();
-    return { id: updatedDoc.id, ...updatedDoc.data() } as Product;
+    return (await this.populateSellerInfo([{ id: updatedDoc.id, ...updatedDoc.data() } as Product]))[0]; 
   }
 
-  // Nuevo método para eliminar un producto
   async deleteProduct(productId: string, currentUserId: string, currentUserRole: string): Promise<{ message: string }> {
     const productRef = this.productsCollection.doc(productId);
     const doc = await productRef.get();
@@ -130,7 +134,7 @@ export class ProductsService {
     const existingProduct = doc.data() as Product;
 
     if (currentUserRole === 'seller' && existingProduct.sellerId !== currentUserId) {
-      throw new UnauthorizedException('No estás autorizado a eliminar este producto.');
+      throw new UnauthorizedException('No estas autorizado a eliminar este producto.');
     }
     else if (currentUserRole !== 'seller' && currentUserRole !== 'admin') {
         throw new UnauthorizedException('No tienes permiso para eliminar productos.');
@@ -138,5 +142,29 @@ export class ProductsService {
 
     await productRef.delete();
     return { message: 'Producto eliminado exitosamente.' };
+  }
+
+ 
+  private async populateSellerInfo(products: Product[]): Promise<Product[]> {
+      if (products.length === 0) {
+          return [];
+      }
+      const sellerIds = [...new Set(products.map(p => p.sellerId))]; 
+      const sellerDocs = await Promise.all(
+          sellerIds.map(id => this.usersCollection.doc(id).get()) 
+      );
+
+      const sellersMap = new Map<string, { id: string, email: string }>();
+      sellerDocs.forEach(doc => {
+          if (doc.exists) {
+              const userData = doc.data();
+              sellersMap.set(doc.id, { id: doc.id, email: userData?.email || 'N/A' });
+          }
+      });
+
+      return products.map(product => ({
+          ...product,
+          seller: sellersMap.get(product.sellerId) || { id: product.sellerId, email: 'N/A' }
+      }));
   }
 }

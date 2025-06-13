@@ -15,6 +15,7 @@ import {
   Patch,
   Delete,
   Param,
+  NotFoundException,
 } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -83,6 +84,16 @@ export class ProductsController {
     return this.productsService.findAllProducts(req.user, { sellerId: req.user.id });
   }
 
+  @Get(':id') 
+  @Public() 
+  async findOne(@Param('id') id: string) {
+    const product = await this.productsService.findOne(id);
+    if (!product) {
+      throw new NotFoundException(`Producto con ID "${id}" no encontrado.`);
+    }
+    return product;
+  }
+
   @Get('all-products')
   @Roles('admin')
   async findAllForAdmin(@Query() filterDto: FilterProductDto, @Request() req: { user: User }) {
@@ -90,34 +101,35 @@ export class ProductsController {
   }
 
  // Actualizar un producto específico
-  @Patch(':id') 
-  @Roles('seller', 'admin') 
-  @UseInterceptors(FileInterceptor('image')) 
+  @Patch(':id')
+  @Roles('seller', 'admin')
+  @UseInterceptors(FileInterceptor('image'))
   async update(
     @Param('id') id: string,
-    @Body() body: any, 
+    @Body() body: any,
     @UploadedFile() image: Express.Multer.File,
     @Request() req: { user: User },
   ) {
+    // ... (el c\u00F3digo existente de tu m\u00E9todo update) ...
     if (!req.user.id) {
-      throw new UnauthorizedException('User ID is required.');
+        throw new UnauthorizedException('User ID is required.');
     }
 
     const updateProductDto = plainToClass(UpdateProductDto, {
-      name: body.name,
-      sku: body.sku,
-      quantity: body.quantity !== undefined ? Number(body.quantity) : undefined, 
-      price: body.price !== undefined ? Number(body.price) : undefined, 
+        name: body.name,
+        sku: body.sku,
+        quantity: body.quantity !== undefined ? Number(body.quantity) : undefined,
+        price: body.price !== undefined ? Number(body.price) : undefined,
     });
     if (image) {
-      updateProductDto.imageUrl = await this.cloudinaryService.uploadImage(image);
+        updateProductDto.imageUrl = await this.cloudinaryService.uploadImage(image);
     }
 
     return this.productsService.updateProduct(
-      id,
-      updateProductDto,
-      req.user.id,
-      req.user.role,
+        id,
+        updateProductDto,
+        req.user.id,
+        req.user.role,
     );
   }
 

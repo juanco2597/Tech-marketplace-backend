@@ -1,13 +1,17 @@
-import * as admin from 'firebase-admin'; 
+import * as admin from 'firebase-admin';
 
 export interface Product {
-  id?: string;
+  id: string; 
   name: string;
   sku: string;
   quantity: number;
   price: number;
-  imageUrl: string; 
+  imageUrl: string;
   sellerId: string; 
-  createdAt?: admin.firestore.FieldValue;
-  updatedAt?: admin.firestore.FieldValue;
+  seller: { 
+    id: string;
+    email: string; 
+  };
+  createdAt: admin.firestore.FieldValue | Date;
+  updatedAt: admin.firestore.FieldValue | Date;
 }
