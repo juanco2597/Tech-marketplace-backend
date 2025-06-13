@@ -1,42 +1,33 @@
-import { Module, Global } from '@nestjs/common'
-import * as admin from 'firebase-admin'
-import * as path from 'path'
-import * as dotenv from 'dotenv'
+import { Module } from '@nestjs/common';
+import * as admin from 'firebase-admin';
+import { ConfigModule, ConfigService } from '@nestjs/config'; 
 
-dotenv.config() 
-
-@Global() 
 @Module({
+  imports: [ConfigModule], 
   providers: [
     {
-      provide: 'FIREBASE_APP', 
-      useFactory: () => {
-        const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+      provide: 'FIREBASE_APP',
+      useFactory: (configService: ConfigService) => {
+        const serviceAccountJsonString = configService.get<string>('FIREBASE_SERVICE_ACCOUNT_PATH');
 
-        if (!serviceAccountPath) {
-          console.error('La variable de entorno FIREBASE_SERVICE_ACCOUNT_PATH no está configurada.')
-          throw new Error('Firebase configuration error: Missing service account path.')
+        if (!serviceAccountJsonString) {
+          throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set.');
         }
 
-        const absoluteServiceAccountPath = path.resolve(process.cwd(), serviceAccountPath)
-
-        if (admin.apps.length === 0) {
-          admin.initializeApp({
-            credential: admin.credential.cert(require(absoluteServiceAccountPath)), 
-          })
-          console.log('Firebase Admin SDK initialized using service account file.')
-        } else {
-          console.log('Firebase Admin SDK already initialized.')
+        let serviceAccount;
+        try {
+          serviceAccount = JSON.parse(serviceAccountJsonString);
+        } catch (e) {
+          throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not a valid JSON string.');
         }
-        return admin.app() 
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        return admin.app();
       },
-    },
-    {
-      provide: 'FIRESTORE_DB', 
-      useFactory: (app: admin.app.App) => app.firestore(),
-      inject: ['FIREBASE_APP'], 
+      inject: [ConfigService], 
     },
   ],
-  exports: ['FIREBASE_APP', 'FIRESTORE_DB'], 
+  exports: ['FIREBASE_APP'],
 })
 export class FirebaseModule {}
