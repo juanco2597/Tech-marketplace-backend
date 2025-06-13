@@ -4,18 +4,19 @@ import { Product } from './interfaces/product.interface';
 import { CreateProductDto } from './dto/create-product.dto';
 import { FilterProductDto } from './dto/filter-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { User } from 'src/users/interfaces/user.interface'; 
+import { User } from 'src/users/interfaces/user.interface';
+import { CollectionReference } from 'firebase-admin/firestore'; 
 
 @Injectable()
 export class ProductsService {
-  private productsCollection: admin.firestore.CollectionReference;
-  private usersCollection: admin.firestore.CollectionReference; 
+  private productsCollection: CollectionReference;
+  private usersCollection: CollectionReference; 
 
   constructor(
-    @Inject('FIRESTORE_DB') private firestore: admin.firestore.Firestore,
+    @Inject('FIREBASE_APP') private readonly firestoreApp: admin.app.App,
   ) {
-    this.productsCollection = this.firestore.collection('products');
-    this.usersCollection = this.firestore.collection('users'); 
+    this.productsCollection = this.firestoreApp.firestore().collection('products');
+    this.usersCollection = this.firestoreApp.firestore().collection('users'); 
   }
 
   async createProduct(

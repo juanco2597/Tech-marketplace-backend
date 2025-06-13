@@ -12,18 +12,18 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { ProductsService } from 'src/products/products.service'; 
-import { CollectionReference } from 'firebase-admin/firestore';
 import { User } from 'src/users/interfaces/user.interface'; 
+import { CollectionReference } from 'firebase-admin/firestore';
 
 @Injectable()
 export class OrdersService {
   private ordersCollection: CollectionReference;
 
   constructor(
-    @Inject('FIRESTORE_DB') private readonly firestore: admin.firestore.Firestore,
-    private readonly productsService: ProductsService, 
+    @Inject('FIREBASE_APP') private readonly firebaseApp: admin.app.App,
+    private readonly  productsService: ProductsService, 
   ) {
-    this.ordersCollection = this.firestore.collection('orders');
+    this.ordersCollection = this.firebaseApp.firestore().collection('orders');
   }
 
   // Metodo para crear una orden
@@ -80,16 +80,16 @@ export class OrdersService {
     const orderRef = this.ordersCollection.doc();
     await orderRef.set(newOrder);
 
-    const orderItemsBatch = this.firestore.batch();
+    const orderItemsBatch = this.firebaseApp.firestore().batch();
     for (const itemData of orderItemsData) {
       const itemRef = orderRef.collection('orderItems').doc();
       orderItemsBatch.set(itemRef, itemData);
     }
     await orderItemsBatch.commit();
 
-    const productUpdateBatch = this.firestore.batch();
+    const productUpdateBatch = this.firebaseApp.firestore().batch();
     for (const item of items) {
-        const productDocRef = this.firestore.collection('products').doc(item.productId);
+        const productDocRef = this.firebaseApp.firestore().collection('products').doc(item.productId);
         productUpdateBatch.update(productDocRef, {
             quantity: admin.firestore.FieldValue.increment(-item.quantity)
         });

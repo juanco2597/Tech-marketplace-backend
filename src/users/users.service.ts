@@ -4,17 +4,18 @@ import { User } from './interfaces/user.interface';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { SellerRequest } from './interfaces/seller-request.interface';
+import { CollectionReference } from 'firebase-admin/firestore';
 
 @Injectable()
 export class UsersService {
-  private usersCollection: admin.firestore.CollectionReference;
-  private sellerRequestsCollection: admin.firestore.CollectionReference;
+  private usersCollection: CollectionReference;
+  private sellerRequestsCollection: CollectionReference;
 
   constructor(
-    @Inject('FIRESTORE_DB') private firestore: admin.firestore.Firestore,
+    @Inject('FIREBASE_APP') private readonly firestoreApp: admin.app.App,
   ) {
-    this.usersCollection = this.firestore.collection('users');
-    this.sellerRequestsCollection = this.firestore.collection('seller_requests');
+    this.usersCollection = this.firestoreApp.firestore().collection('users');
+    this.sellerRequestsCollection = this.firestoreApp.firestore().collection('seller_requests');
   }
 
   async findOneByEmail(email: string): Promise<User | undefined> {

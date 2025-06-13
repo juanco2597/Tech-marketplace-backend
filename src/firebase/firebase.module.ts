@@ -1,33 +1,32 @@
+
 import { Module } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { ConfigModule, ConfigService } from '@nestjs/config'; 
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-  imports: [ConfigModule], 
+  imports: [ConfigModule],
   providers: [
     {
-      provide: 'FIRESTORE_DB',
+      provide: 'FIREBASE_APP', 
       useFactory: (configService: ConfigService) => {
         const serviceAccountJsonString = configService.get<string>('FIREBASE_SERVICE_ACCOUNT_PATH');
-
         if (!serviceAccountJsonString) {
-          throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set.');
+          throw new Error('FIREBASE_SERVICE_ACCOUNT_PATH environment variable is not set.');
         }
-
         let serviceAccount;
         try {
           serviceAccount = JSON.parse(serviceAccountJsonString);
         } catch (e) {
-          throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not a valid JSON string.');
+          throw new Error('FIREBASE_SERVICE_ACCOUNT_PATH environment variable is not a valid JSON string.');
         }
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         });
         return admin.app();
       },
-      inject: [ConfigService], 
+      inject: [ConfigService],
     },
   ],
-  exports: ['FIRESTORE_DB'],
+  exports: ['FIREBASE_APP'], 
 })
 export class FirebaseModule {}
