@@ -6,7 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   imports: [ConfigModule], 
   providers: [
     {
-      provide: 'FIREBASE_APP',
+      provide: 'FIRESTORE_DB',
       useFactory: (configService: ConfigService) => {
         const serviceAccountJsonString = configService.get<string>('FIREBASE_SERVICE_ACCOUNT_PATH');
 
@@ -28,6 +28,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       inject: [ConfigService], 
     },
   ],
-  exports: ['FIREBASE_APP'],
+  exports: ['FIRESTORE_DB'],
 })
 export class FirebaseModule {}
